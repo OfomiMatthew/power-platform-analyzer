@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Power Platform Code Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, sans-serif;
+      }
+
+      .code-editor {
+        font-family: "Courier New", monospace;
+        tab-size: 4;
+      }
+
+      .fade-in {
+        animation: fadeIn 0.3s ease-in;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .spinner {
+        border: 3px solid #f3f4f6;
+        border-top: 3px solid #3b82f6;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .error-badge {
+        background-color: #fee2e2;
+        color: #991b1b;
+      }
+
+      .success-badge {
+        background-color: #d1fae5;
+        color: #065f46;
+      }
+
+      .warning-badge {
+        background-color: #fef3c7;
+        color: #92400e;
+      }
+
+      .diff-removed {
+        background-color: #fee2e2;
+        text-decoration: line-through;
+      }
+
+      .diff-added {
+        background-color: #d1fae5;
+      }
+
+      /* Dark Mode Styles */
+      .dark {
+        color-scheme: dark;
+      }
+
+      .dark body {
+        background-color: #111827;
+        color: #f9fafb;
+      }
+
+      .dark .bg-gray-50 {
+        background-color: #111827;
+      }
+
+      .dark .bg-white {
+        background-color: #1f2937;
+      }
+
+      .dark .bg-gray-100 {
+        background-color: #374151;
+      }
+
+      .dark .bg-gray-50 {
+        background-color: #1f2937;
+      }
+
+      .dark .text-gray-900 {
+        color: #f9fafb;
+      }
+
+      .dark .text-gray-800 {
+        color: #e5e7eb;
+      }
+
+      .dark .text-gray-700 {
+        color: #d1d5db;
+      }
+
+      .dark .text-gray-600 {
+        color: #9ca3af;
+      }
+
+      .dark .text-gray-500 {
+        color: #6b7280;
+      }
+
+      .dark .border-gray-200 {
+        border-color: #374151;
+      }
+
+      .dark .border-gray-300 {
+        border-color: #4b5563;
+      }
+
+      .dark .hover\:bg-gray-200:hover {
+        background-color: #4b5563;
+      }
+
+      .dark .bg-blue-50 {
+        background-color: #1e3a5f;
+      }
+
+      .dark .border-blue-200 {
+        border-color: #1e40af;
+      }
+
+      .dark .text-blue-900 {
+        color: #93c5fd;
+      }
+
+      .dark .bg-green-50 {
+        background-color: #064e3b;
+      }
+
+      .dark .border-green-200 {
+        border-color: #065f46;
+      }
+
+      .dark .text-green-900 {
+        color: #6ee7b7;
+      }
+
+      .dark .text-green-800 {
+        color: #86efac;
+      }
+
+      .dark .bg-orange-50 {
+        background-color: #78350f;
+      }
+
+      .dark .border-orange-200 {
+        border-color: #92400e;
+      }
+
+      .dark .text-orange-900 {
+        color: #fcd34d;
+      }
+
+      .dark .text-orange-800 {
+        color: #fde047;
+      }
+
+      .dark .spinner {
+        border-color: #374151;
+        border-top-color: #3b82f6;
+      }
+
+      /* Theme toggle button */
+      .theme-toggle {
+        position: relative;
+        width: 60px;
+        height: 30px;
+        background-color: #d1d5db;
+        border-radius: 15px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+
+      .dark .theme-toggle {
+        background-color: #4b5563;
+      }
+
+      .theme-toggle-circle {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 24px;
+        height: 24px;
+        background-color: white;
+        border-radius: 50%;
+        transition: transform 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+      }
+
+      .dark .theme-toggle-circle {
+        transform: translateX(30px);
+        background-color: #1f2937;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <i class="fas fa-code text-blue-600 text-3xl"></i>
+            <div>
+              <h1 class="text-2xl font-bold text-gray-900">
+                Power Platform Code Analyzer
+              </h1>
+              <p class="text-sm text-gray-600">
+                AI-powered analysis for Power Apps, Power BI & Power Automate
+              </p>
+            </div>
+          </div>
+          <!-- Theme Toggle -->
+          <div class="flex items-center space-x-3">
+            <span class="text-sm text-gray-600" id="theme-label">Light</span>
+            <div class="theme-toggle" id="theme-toggle">
+              <div class="theme-toggle-circle">
+                <i class="fas fa-sun text-yellow-500" id="theme-icon"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Left Panel - Input -->
+        <div class="space-y-6">
+          <!-- Suite Selection -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <label
+              for="suite-select"
+              class="block text-sm font-medium text-gray-900 mb-2"
+            >
+              <i class="fas fa-layer-group text-blue-600 mr-2"></i>Select Power
+              Platform Suite
+            </label>
+            <select
+              id="suite-select"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+            >
+              <option value="">Choose a suite...</option>
+              <option value="power_apps">Power Apps</option>
+              <option value="power_bi">Power BI (DAX/M)</option>
+              <option value="power_automate">Power Automate</option>
+            </select>
+
+            <!-- Suite Info -->
+            <div id="suite-info" class="mt-4 hidden">
+              <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p class="text-sm text-blue-900" id="suite-description"></p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Code Editor -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <label
+              for="code-input"
+              class="block text-sm font-medium text-gray-900 mb-2"
+            >
+              <i class="fas fa-edit text-blue-600 mr-2"></i>Paste Your Code
+            </label>
+            <textarea
+              id="code-input"
+              class="w-full h-80 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent code-editor resize-none transition-all"
+              placeholder="Paste your Power Platform code here..."
+            ></textarea>
+
+            <!-- Character Count -->
+            <div
+              class="mt-2 flex justify-between items-center text-xs text-gray-500"
+            >
+              <span id="char-count">0 characters</span>
+              <span id="line-count">0 lines</span>
+            </div>
+          </div>
+
+          <!-- Analyze Button -->
+          <button
+            id="analyze-btn"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-4 rounded-lg transition-all flex items-center justify-center space-x-2 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            disabled
+          >
+            <i class="fas fa-search"></i>
+            <span>Analyze Code</span>
+          </button>
+        </div>
+
+        <!-- Right Panel - Results -->
+        <div class="space-y-6">
+          <!-- Welcome Message -->
+          <div
+            id="welcome-message"
+            class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center"
+          >
+            <i class="fas fa-robot text-blue-600 text-5xl mb-4"></i>
+            <h2 class="text-xl font-semibold text-gray-900 mb-2">
+              Ready to Analyze
+            </h2>
+            <p class="text-gray-600">
+              Select a suite, paste your code, and click "Analyze Code" to get
+              started.
+            </p>
+          </div>
+
+          <!-- Loading State -->
+          <div
+            id="loading-state"
+            class="hidden bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center"
+          >
+            <div class="spinner mx-auto mb-4"></div>
+            <h2 class="text-xl font-semibold text-gray-900 mb-2">
+              Analyzing Your Code
+            </h2>
+            <p class="text-gray-600">
+              AI is reviewing your code for errors and improvements...
+            </p>
+          </div>
+
+          <!-- Results Container -->
+          <div id="results-container" class="hidden space-y-6">
+            <!-- Status Summary -->
+            <div
+              class="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+            >
+              <h3
+                class="text-lg font-semibold text-gray-900 mb-4 flex items-center"
+              >
+                <i class="fas fa-clipboard-check text-blue-600 mr-2"></i
+                >Analysis Summary
+              </h3>
+              <div id="status-summary" class="space-y-2"></div>
+            </div>
+
+            <!-- Errors Section -->
+            <div
+              id="errors-section"
+              class="hidden bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+            >
+              <h3
+                class="text-lg font-semibold text-gray-900 mb-4 flex items-center"
+              >
+                <i class="fas fa-exclamation-circle text-red-600 mr-2"></i
+                >Issues Found
+              </h3>
+              <ul id="errors-list" class="space-y-2"></ul>
+            </div>
+
+            <!-- Corrected Code Section -->
+            <div
+              class="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+            >
+              <h3
+                class="text-lg font-semibold text-gray-900 mb-4 flex items-center"
+              >
+                <i class="fas fa-code text-green-600 mr-2"></i>Corrected Code
+              </h3>
+              <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <pre
+                  id="corrected-code"
+                  class="code-editor text-sm overflow-x-auto whitespace-pre-wrap"
+                ></pre>
+              </div>
+              <div class="mt-3 flex space-x-2">
+                <button
+                  id="copy-btn"
+                  class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-all flex items-center space-x-2"
+                >
+                  <i class="fas fa-copy"></i>
+                  <span>Copy Code</span>
+                </button>
+                <button
+                  id="verify-btn"
+                  class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-all flex items-center space-x-2"
+                >
+                  <i class="fas fa-check-circle"></i>
+                  <span>Verify Correction</span>
+                </button>
+              </div>
+
+              <!-- Verification Results -->
+              <div id="verification-section" class="hidden mt-4">
+                <div
+                  id="verification-content"
+                  class="rounded-lg p-4 border"
+                ></div>
+              </div>
+            </div>
+
+            <!-- Changes Section -->
+            <div
+              id="changes-section"
+              class="hidden bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+            >
+              <h3
+                class="text-lg font-semibold text-gray-900 mb-4 flex items-center"
+              >
+                <i class="fas fa-list-ul text-blue-600 mr-2"></i>Changes Made
+              </h3>
+              <ul id="changes-list" class="space-y-2"></ul>
+            </div>
+
+            <!-- Explanation Section -->
+            <div
+              class="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+            >
+              <h3
+                class="text-lg font-semibold text-gray-900 mb-4 flex items-center"
+              >
+                <i class="fas fa-lightbulb text-yellow-600 mr-2"></i>Explanation
+              </h3>
+              <p
+                id="explanation-text"
+                class="text-gray-700 leading-relaxed"
+              ></p>
+            </div>
+
+            <!-- Best Practices Section -->
+            <div
+              id="best-practices-section"
+              class="hidden bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+            >
+              <h3
+                class="text-lg font-semibold text-gray-900 mb-4 flex items-center"
+              >
+                <i class="fas fa-star text-purple-600 mr-2"></i>Best Practices
+              </h3>
+              <ul id="best-practices-list" class="space-y-2"></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  </body>
+</html>
